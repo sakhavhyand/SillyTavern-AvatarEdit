@@ -4,12 +4,12 @@ const path = import('path');
 import { AVATAR_HEIGHT, AVATAR_WIDTH } from '../../src/constants.js';
 import { invalidateThumbnail } from '../../src/endpoints/thumbnails.js';
 const fs = import('fs');
-import { jsonParser, urlencodedParser } from '../../src/express-common.js';
+import { urlencodedParser } from '../../src/express-common.js';
 const characterCardParser = import('../../src/character-card-parser.js');
 const writeFileAtomicSync = import('write-file-atomic').sync;
 
 
-async function writeAvatar(req, crop = undefined) {
+async function replaceAvatar(filename, file, crop = undefined) {
     try {
         const charData = req.body.char;
         const avatarPath = path.join(req.user.directories.characters, charData.avatar);
@@ -107,21 +107,22 @@ function tryParse(str) {
  * @param {Router} router
  */
 export async function init(router) {
-    router.post('/edit-avatar', urlencodedParser , function (req, res) {
-    //router.post('/edit-avatar', function (req, res) {
+    router.post('/edit-avatar', urlencodedParser , async function (req, res) {
         if (!req.body || !req.file) {
             console.error('Error: no response body and/or file detected');
             return res.status(400).send('Error: no response body and/or file detected');
         }
 
         try {
-            const crop = tryParse(req.query.crop);
-            writeAvatar(req, crop);
+            console.log('file received.');
+            // const crop = tryParse(req.query.crop);
+            // console.log(req.body.avatar_url);
+            // console.log(crop);
+            // replaceAvatar(req.body.avatar_url, req.file, crop);
             return res.sendStatus(200);
         } catch (err) {
             console.error('An error occured, character avatar replacement invalidated.', err);
         }
-
     });
 }
 
