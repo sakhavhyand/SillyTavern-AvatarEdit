@@ -1,31 +1,34 @@
 import { Router } from 'express';
 import jimp from 'jimp';
-const path = import('path');
+import { createRequire } from 'module';
 import { AVATAR_HEIGHT, AVATAR_WIDTH } from '../../src/constants.js';
 import { invalidateThumbnail } from '../../src/endpoints/thumbnails.js';
-const fs = import('fs');
 import { urlencodedParser } from '../../src/express-common.js';
-const characterCardParser = import('../../src/character-card-parser.js');
-const writeFileAtomicSync = import('write-file-atomic').sync;
+const require  = createRequire(import.meta.url);
+const fs = require('fs');
+const path = require('path');
+const characterCardParser = require('../../src/character-card-parser.js');
+const writeFileAtomicSync = require('write-file-atomic').sync;
 
 
-async function replaceAvatar(filename, file, crop = undefined) {
+async function replaceAvatar(uploadPath, req, crop = undefined) {
     try {
-        const charData = req.body.char;
-        const avatarPath = path.join(req.user.directories.characters, charData.avatar);
-        invalidateThumbnail(req.user.directories, 'avatar', charData.avatar);
+        const imagePath = path.join(req.user.directories.characters, req.body.avatar_url);
+        const charData = characterCardParser.parse(imagePath);
+
+        invalidateThumbnail(req.user.directories, 'avatar', req.body.avatar_url);
         function getInputImage() {
-            if (Buffer.isBuffer(req.body.avatar)) {
-                return parseImageBuffer(req.body.avatar, crop);
+            if (Buffer.isBuffer(uploadPath)) {
+                return parseImageBuffer(uploadPath, crop);
             }
 
-            return tryReadImage(req.body.avatar, crop);
+            return tryReadImage(uploadPath, crop);
         }
 
         const inputImage = await getInputImage();
         const outputImage = characterCardParser.write(inputImage, charData);
 
-        writeFileAtomicSync(avatarPath, outputImage);
+        writeFileAtomicSync(imagePath, outputImage);
         return true;
     } catch (err) {
         console.log(err);
@@ -108,17 +111,16 @@ function tryParse(str) {
  */
 export async function init(router) {
     router.post('/edit-avatar', urlencodedParser , async function (req, res) {
-        if (!req.body || !req.file) {
-            console.error('Error: no response body and/or file detected');
-            return res.status(400).send('Error: no response body and/or file detected');
-        }
-
         try {
+            if (!req.body || !req.file) return res.status(400).send('Error: no response body and/or file detected');
+
             console.log('file received.');
-            // const crop = tryParse(req.query.crop);
-            // console.log(req.body.avatar_url);
-            // console.log(crop);
-            // replaceAvatar(req.body.avatar_url, req.file, crop);
+            const crop = tryParse(req.query.crop);
+            const uploadPath = path.join(req.file.destination, req.file.filename);
+
+            await replaceAvatar(uploadPath, req, crop);
+            fs.unlinkSync(uploadPath);
+
             return res.sendStatus(200);
         } catch (err) {
             console.error('An error occured, character avatar replacement invalidated.', err);
