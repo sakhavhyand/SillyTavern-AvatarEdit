@@ -110,6 +110,10 @@ function tryParse(str) {
  * @param {Router} router
  */
 export async function init(router) {
+    // Used to check if the server plugin is running
+    router.post('/probe', (_req, res) => {
+        return res.sendStatus(204);
+    });
     router.post('/edit-avatar', urlencodedParser , async function (req, res) {
         try {
             if (!req.body || !req.file) return res.status(400).send('Error: no response body and/or file detected');
