@@ -28,11 +28,9 @@ async function replaceAvatar(uploadPath, req, crop = undefined) {
         const inputImage = await getInputImage();
         const outputImage = characterCardParser.write(inputImage, charData);
 
-        writeFileAtomicSync(imagePath, outputImage);
-        return true;
+        await writeFileAtomicSync(imagePath, outputImage);
     } catch (err) {
         console.log(err);
-        return false;
     }
 }
 
@@ -104,7 +102,6 @@ function tryParse(str) {
     }
 }
 
-
 /**
  *
  * @param {Router} router
@@ -114,11 +111,11 @@ export async function init(router) {
     router.post('/probe', (_req, res) => {
         return res.sendStatus(204);
     });
+
     router.post('/edit-avatar', urlencodedParser , async function (req, res) {
         try {
             if (!req.body || !req.file) return res.status(400).send('Error: no response body and/or file detected');
 
-            console.log('file received.');
             const crop = tryParse(req.query.crop);
             const uploadPath = path.join(req.file.destination, req.file.filename);
 
