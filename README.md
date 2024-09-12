@@ -12,7 +12,7 @@ Needed for [SillyTavern-AnotherCharManager](https://github.com/sakhavhyand/Silly
 
 ```
 cd plugins
-git clone https://github.com/SillyTavern/SillyTavern-DiscordRichPresence-Server
+git clone https://github.com/sakhavhyand/SillyTavern-AvatarEdit
 ```
 
 3. Restart the SillyTavern server.
