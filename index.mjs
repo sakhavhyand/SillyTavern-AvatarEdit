@@ -8,10 +8,10 @@ import { default as fetch } from 'node-fetch';
 const require  = createRequire(import.meta.url);
 const fs = require('fs');
 const path = require('path');
-const characterCardParser = require('../../src/character-card-parser.js');
+const characterCardParser = await import('../../src/character-card-parser.js');
 const writeFileAtomicSync = require('write-file-atomic').sync;
 const sanitize = require('sanitize-filename');
-const { getConfigValue } = require('../../src/util');
+const { getConfigValue } = await import('../../src/util.js');
 
 const WHITELIST_GENERIC_URL_DOWNLOAD_SOURCES = getConfigValue('whitelistImportDomains', []);
 
