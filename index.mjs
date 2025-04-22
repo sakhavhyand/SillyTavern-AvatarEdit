@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import jimp from 'jimp';
+import { Jimp, JimpMime } from '../../src/jimp.js';
 import { createRequire } from 'module';
 import { AVATAR_HEIGHT, AVATAR_WIDTH } from '../../src/constants.js';
 import { invalidateThumbnail } from '../../src/endpoints/thumbnails.js';
-import { jsonParser, urlencodedParser } from '../../src/express-common.js';
 import { default as fetch } from 'node-fetch';
 const require  = createRequire(import.meta.url);
 const fs = require('fs');
@@ -19,7 +18,7 @@ const WHITELIST_GENERIC_URL_DOWNLOAD_SOURCES = getConfigValue('whitelistImportDo
 async function replaceAvatar(uploadPath, req, crop = undefined) {
     try {
         const imagePath = path.join(req.user.directories.characters, req.body.avatar_url);
-        const charData = characterCardParser.parse(imagePath);
+        const charData = await characterCardParser.parse(imagePath);
 
         invalidateThumbnail(req.user.directories, 'avatar', req.body.avatar_url);
         function getInputImage() {
@@ -299,7 +298,7 @@ function parseChubUrl(str) {
  * @returns {Promise<Buffer>} Image buffer
  */
 async function parseImageBuffer(buffer, crop) {
-    const image = await jimp.read(buffer);
+    const image = await Jimp.read(buffer);
     let finalWidth = image.bitmap.width, finalHeight = image.bitmap.height;
 
     // Apply crop if defined
@@ -315,7 +314,8 @@ async function parseImageBuffer(buffer, crop) {
         }
     }
 
-    return image.cover(finalWidth, finalHeight).getBufferAsync(jimp.MIME_PNG);
+    image.cover({ w: finalWidth, h: finalHeight });
+    return await image.getBuffer(JimpMime.png)
 }
 
 /**
@@ -326,7 +326,7 @@ async function parseImageBuffer(buffer, crop) {
  */
 async function tryReadImage(imgPath, crop) {
     try {
-        let rawImg = await jimp.read(imgPath);
+        let rawImg = await Jimp.read(imgPath);
         let finalWidth = rawImg.bitmap.width, finalHeight = rawImg.bitmap.height;
 
         // Apply crop if defined
@@ -342,8 +342,8 @@ async function tryReadImage(imgPath, crop) {
             }
         }
 
-        const image = await rawImg.cover(finalWidth, finalHeight).getBufferAsync(jimp.MIME_PNG);
-        return image;
+        rawImg.cover({ w: finalWidth, h: finalHeight });
+        return await rawImg.getBuffer(JimpMime.png);
     }
         // If it's an unsupported type of image (APNG) - just read the file as buffer
     catch {
@@ -406,7 +406,7 @@ export async function init(router) {
         return res.sendStatus(204);
     });
 
-    router.post('/edit-avatar', urlencodedParser , async function (req, res) {
+    router.post('/edit-avatar', async function (req, res) {
         try {
             if (!req.body || !req.file) return res.status(400).send('Error: no response body and/or file detected');
 
@@ -422,7 +422,7 @@ export async function init(router) {
         }
     });
 
-    router.post('/importURL', jsonParser, async (request, response) => {
+    router.post('/importURL', async (request, response) => {
         if (!request.body.url) {
             return response.sendStatus(400);
         }
@@ -507,7 +507,7 @@ export async function init(router) {
         }
     });
 
-    router.post('/importUUID', jsonParser, async (request, response) => {
+    router.post('/importUUID', async (request, response) => {
         if (!request.body.url) {
             return response.sendStatus(400);
         }
